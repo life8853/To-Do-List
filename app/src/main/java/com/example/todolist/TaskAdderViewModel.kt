@@ -1,0 +1,177 @@
+package com.example.todolist
+
+import android.app.Application
+import android.content.Context
+import android.content.Intent
+import android.net.Uri
+import android.widget.Toast
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateListOf
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.setValue
+import androidx.core.content.FileProvider
+import androidx.lifecycle.AndroidViewModel
+import androidx.lifecycle.application
+import androidx.lifecycle.viewModelScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
+import java.io.File
+import java.time.LocalDateTime
+
+class TaskAdderViewModel(application: Application, private val taskId: Int?) :
+    AndroidViewModel(application) {
+
+    var title by mutableStateOf("")
+
+    var description by mutableStateOf("")
+
+    var notifyUser by mutableStateOf(false)
+
+    var deadline by mutableStateOf<LocalDateTime?>(null)
+
+    var category by mutableStateOf(Category.HEALTH)
+
+    var isTaskEdited by mutableStateOf(false)
+
+    val existingAttachments = mutableStateListOf<Attachment>()
+    val newAttachments = mutableStateListOf<Attachment>()
+    val draftAttachments = mutableStateListOf<DraftAttachment>()
+
+    private val taskDao = TaskDatabase.getDatabase(application).taskDao()
+
+    init {
+        if (taskId != null && taskId != 0) {
+            isTaskEdited = true
+            viewModelScope.launch {
+                val taskWithAttachments = taskDao.getTaskWithAttachmentsById(taskId)
+                val task = taskWithAttachments?.task!!
+                title = task.title
+                description = task.description
+                notifyUser = task.showNotification
+                deadline = LocalDateTime.parse(task.dueTime)
+                existingAttachments.addAll(taskWithAttachments.attachments)
+
+            }
+
+
+        }
+    }
+
+    fun createTask(onCreate: () -> Unit) {
+
+        if (deadline == null || title.isEmpty() || description.isEmpty()) {
+            Toast.makeText(application, "Please fill all necessary fields", Toast.LENGTH_SHORT)
+                .show()
+            return
+        }
+
+        val newTask =
+            Task(
+                uid = if (isTaskEdited) taskId!! else 0,
+                title = title,
+                description = description,
+                creationTime = LocalDateTime.now().toString(),
+                dueTime = deadline!!.toString(),
+                completed = false,
+                showNotification = notifyUser,
+                category = category.id
+            )
+
+        val settings = SettingsManager.getInstance(application)
+        val notifier = NotificationScheduler(application)
+
+        viewModelScope.launch {
+            val notifyBeforeMinutes = settings.settingsFlow.first().notificationTime
+
+            val newAttachments = draftAttachments.mapNotNull { draft ->
+                performFileSync(draft, taskId)
+            }
+
+            val allAttachments = existingAttachments + newAttachments
+
+            taskDao.saveTaskWithAttachments(newTask, allAttachments)
+            if (isTaskEdited) {
+                notifier.cancelNotification(taskId!!)
+            }
+            if (newTask.showNotification) {
+                notifier.scheduleNotification(newTask, notifyBeforeMinutes)
+            }
+        }
+
+        onCreate()
+    }
+
+    data class DraftAttachment(
+        val uri: Uri,
+        val name: String,
+        val mimeType: String
+    )
+
+    fun addAttachmentDraft(uri: Uri) {
+        val context = getApplication<Application>()
+
+        val name = "file_${System.currentTimeMillis()}"
+        val mime = context.contentResolver.getType(uri) ?: "application/data"
+
+        draftAttachments.add(DraftAttachment(uri, name, mime))
+    }
+
+    private suspend fun performFileSync(draft: DraftAttachment, taskId: Int?): Attachment? =
+        withContext(Dispatchers.IO) {
+            try {
+                val context = getApplication<Application>()
+                context.contentResolver.openInputStream(draft.uri)?.use { input ->
+                    context.openFileOutput(draft.name, Context.MODE_PRIVATE).use { output ->
+                        input.copyTo(output)
+                    }
+                }
+                val file = File(context.filesDir, draft.name)
+
+                Attachment(
+                    taskId = taskId ?: 0,
+                    fileName = draft.name,
+                    filePath = file.absolutePath,
+                    mimeType = draft.mimeType
+                )
+            } catch (e: Exception) {
+                e.printStackTrace()
+                null
+            }
+        }
+
+    fun openDraftAttachment(context: Context, uri: Uri, mimeType: String) {
+        val intent = Intent(Intent.ACTION_VIEW).apply {
+            setDataAndType(uri, mimeType)
+            addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+            addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+        }
+        context.startActivity(Intent.createChooser(intent, "Open with..."))
+    }
+
+    fun removeDraftAttachment(draftAttachment: DraftAttachment) {
+        draftAttachments.remove(draftAttachment)
+    }
+
+
+    fun openAttachment(context: Context = application, attachment: Attachment) {
+        val file = File(attachment.filePath)
+        val uri = FileProvider.getUriForFile(context, "com.example.todolist.provider", file)
+
+        val intent = Intent(Intent.ACTION_VIEW).apply {
+            setDataAndType(uri, attachment.mimeType)
+            addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+        }
+
+        context.startActivity(Intent.createChooser(intent, "Open with..."))
+    }
+
+    fun removeAttachment(context: Application = application, attachment: Attachment) {
+        viewModelScope.launch(Dispatchers.IO) {
+            val context = context
+            context.deleteFile(attachment.fileName)
+        }
+        existingAttachments.remove(attachment)
+    }
+}
