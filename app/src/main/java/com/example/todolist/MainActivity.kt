@@ -48,6 +48,14 @@ class MainActivity : ComponentActivity() {
                     navController = navController,
                     startDestination = ListRoute,
                 ) {
+                    val exitTaskEditor = {
+                        if (!navController.popBackStack()) {
+                            navController.navigate(ListRoute) {
+                                launchSingleTop = true
+                            }
+                        }
+                    }
+
                     composable<ListRoute> {
                         TaskList(
                             onFabClick = { navController.navigate(AddRoute(taskId = null)) },
@@ -62,7 +70,7 @@ class MainActivity : ComponentActivity() {
                         )
                     ) { backstackEntry ->
                         val route: AddRoute = backstackEntry.toRoute()
-                        TaskAdder(taskID = route.taskId, onBack = { navController.popBackStack() })
+                        TaskAdder(taskID = route.taskId, onBack = exitTaskEditor)
                     }
 
                     composable<SettingsRoute> {

@@ -196,10 +196,23 @@ fun TaskAdder(modifier: Modifier = Modifier, taskID: Int? = null, onBack: () -> 
                         Text("Add Attachment")
                     }
 
-                    Button(onClick = {
-                        viewModel.createTask(onBack)
-                    }) {
-                        Text(if (viewModel.isTaskEdited) "Save Changes" else "Create Task")
+                    Column(
+                        modifier = Modifier.fillMaxWidth(),
+                        verticalArrangement = Arrangement.spacedBy(12.dp)
+                    ) {
+                        OutlinedButton(
+                            onClick = onBack,
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            Text("Cancel")
+                        }
+
+                        Button(
+                            onClick = { viewModel.createTask(onBack) },
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            Text(if (viewModel.isTaskEdited) "Save Changes" else "Create Task")
+                        }
                     }
 
                 }

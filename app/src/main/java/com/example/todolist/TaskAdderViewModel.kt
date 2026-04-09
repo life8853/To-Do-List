@@ -11,7 +11,6 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.core.content.FileProvider
 import androidx.lifecycle.AndroidViewModel
-import androidx.lifecycle.application
 import androidx.lifecycle.viewModelScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.first
@@ -36,7 +35,6 @@ class TaskAdderViewModel(application: Application, private val taskId: Int?) :
     var isTaskEdited by mutableStateOf(false)
 
     val existingAttachments = mutableStateListOf<Attachment>()
-    val newAttachments = mutableStateListOf<Attachment>()
     val draftAttachments = mutableStateListOf<DraftAttachment>()
 
     private val taskDao = TaskDatabase.getDatabase(application).taskDao()
@@ -45,24 +43,23 @@ class TaskAdderViewModel(application: Application, private val taskId: Int?) :
         if (taskId != null && taskId != 0) {
             isTaskEdited = true
             viewModelScope.launch {
-                val taskWithAttachments = taskDao.getTaskWithAttachmentsById(taskId)
-                val task = taskWithAttachments?.task!!
-                title = task.title
-                description = task.description
-                notifyUser = task.showNotification
-                deadline = LocalDateTime.parse(task.dueTime)
-                existingAttachments.addAll(taskWithAttachments.attachments)
-
+                taskDao.getTaskWithAttachmentsById(taskId)?.let { taskWithAttachments ->
+                    val task = taskWithAttachments.task
+                    title = task.title
+                    description = task.description
+                    notifyUser = task.showNotification
+                    deadline = LocalDateTime.parse(task.dueTime)
+                    category = Category.entries.find { it.id == task.category } ?: Category.HEALTH
+                    existingAttachments.addAll(taskWithAttachments.attachments)
+                }
             }
-
-
         }
     }
 
-    fun createTask(onCreate: () -> Unit) {
+    fun createTask(onComplete: () -> Unit) {
 
         if (deadline == null || title.isEmpty() || description.isEmpty()) {
-            Toast.makeText(application, "Please fill all necessary fields", Toast.LENGTH_SHORT)
+            Toast.makeText(getApplication(), "Please fill all necessary fields", Toast.LENGTH_SHORT)
                 .show()
             return
         }
@@ -79,14 +76,14 @@ class TaskAdderViewModel(application: Application, private val taskId: Int?) :
                 category = category.id
             )
 
-        val settings = SettingsManager.getInstance(application)
-        val notifier = NotificationScheduler(application)
+        val settings = SettingsManager.getInstance(getApplication())
+        val notifier = NotificationScheduler(getApplication())
 
         viewModelScope.launch {
             val notifyBeforeMinutes = settings.settingsFlow.first().notificationTime
 
             val newAttachments = draftAttachments.mapNotNull { draft ->
-                performFileSync(draft, taskId)
+                performFileSync(draft, if (isTaskEdited) taskId else 0)
             }
 
             val allAttachments = existingAttachments + newAttachments
@@ -98,9 +95,10 @@ class TaskAdderViewModel(application: Application, private val taskId: Int?) :
             if (newTask.showNotification) {
                 notifier.scheduleNotification(newTask, notifyBeforeMinutes)
             }
+            withContext(Dispatchers.Main) {
+                onComplete()
+            }
         }
-
-        onCreate()
     }
 
     data class DraftAttachment(
@@ -155,7 +153,7 @@ class TaskAdderViewModel(application: Application, private val taskId: Int?) :
     }
 
 
-    fun openAttachment(context: Context = application, attachment: Attachment) {
+    fun openAttachment(context: Context, attachment: Attachment) {
         val file = File(attachment.filePath)
         val uri = FileProvider.getUriForFile(context, "com.example.todolist.provider", file)
 
@@ -167,10 +165,9 @@ class TaskAdderViewModel(application: Application, private val taskId: Int?) :
         context.startActivity(Intent.createChooser(intent, "Open with..."))
     }
 
-    fun removeAttachment(context: Application = application, attachment: Attachment) {
+    fun removeAttachment(attachment: Attachment) {
         viewModelScope.launch(Dispatchers.IO) {
-            val context = context
-            context.deleteFile(attachment.fileName)
+            getApplication<Application>().deleteFile(attachment.fileName)
         }
         existingAttachments.remove(attachment)
     }
