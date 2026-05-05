@@ -38,10 +38,10 @@ fun SettingsScreen(viewModel: SettingsViewModel = viewModel()) {
         topBar = {
             TopAppBar(
                 title = { Text("Settings") },
-                colors = TopAppBarDefaults.topAppBarColors(containerColor = Color(0xFFFFC067))
+                colors = TopAppBarDefaults.topAppBarColors(containerColor = Color(0xFF1F6E3F))
             )
         },
-        containerColor = Color(0xFFFFC067)
+        containerColor = Color(0xFFF5F5F5)
     ) { innerPadding ->
         if (viewModel.currentSettings == null) {
             Box(
@@ -101,7 +101,8 @@ fun SettingsScreen(viewModel: SettingsViewModel = viewModel()) {
                     Column(modifier = Modifier.padding(16.dp)) {
                         Text(
                             text = "Notification time: ${viewModel.currentSettings!!.notificationTime} minutes before",
-                            style = MaterialTheme.typography.bodyLarge
+                            style = MaterialTheme.typography.bodyLarge,
+                            color = Color.Black
                         )
                         Spacer(modifier = Modifier.height(8.dp))
                         Slider(
@@ -122,5 +123,6 @@ fun SettingsSectionTitle(title: String) {
     Text(
         text = title,
         style = MaterialTheme.typography.labelLarge,
+        color = Color.Black
     )
 }

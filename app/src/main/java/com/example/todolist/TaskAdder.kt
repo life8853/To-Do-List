@@ -83,7 +83,7 @@ fun TaskAdder(modifier: Modifier = Modifier, taskID: Int? = null, onBack: () -> 
         Column(
             modifier = modifier
                 .fillMaxSize()
-                .background(color = Color(0xFFFFC067))
+                .background(color = Color(0xFFF5F5F5))
                 .padding(innerPadding)
                 .padding(8.dp, 8.dp)
         ) {

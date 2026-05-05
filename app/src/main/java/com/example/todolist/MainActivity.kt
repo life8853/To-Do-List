@@ -13,6 +13,7 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navDeepLink
 import androidx.navigation.toRoute
+import com.example.todolist.stats.StatsScreen
 import com.example.todolist.ui.theme.ToDoListTheme
 import kotlinx.serialization.Serializable
 
@@ -26,6 +27,9 @@ data class AddRoute(val taskId: Int? = null)
 
 @Serializable
 object SettingsRoute
+
+@Serializable
+object StatsRoute
 
 
 class MainActivity : ComponentActivity() {
@@ -60,6 +64,7 @@ class MainActivity : ComponentActivity() {
                         TaskList(
                             onFabClick = { navController.navigate(AddRoute(taskId = null)) },
                             onSettingsClick = { navController.navigate(SettingsRoute) },
+                            onStatsClick = { navController.navigate(StatsRoute) },
                             onTaskClick = { id -> navController.navigate(AddRoute(taskId = id)) }
                         )
                     }
@@ -75,6 +80,10 @@ class MainActivity : ComponentActivity() {
 
                     composable<SettingsRoute> {
                         SettingsScreen()
+                    }
+
+                    composable<StatsRoute> {
+                        StatsScreen(onBackClick = exitTaskEditor)
                     }
                 }
             }

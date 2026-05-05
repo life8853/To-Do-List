@@ -12,6 +12,7 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Settings
+import androidx.compose.material.icons.filled.BarChart
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
@@ -33,6 +34,7 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 fun TaskList(
     onFabClick: () -> Unit,
     onSettingsClick: () -> Unit,
+    onStatsClick: () -> Unit,
     onTaskClick: (Int) -> Unit,
     modifier: Modifier = Modifier,
     viewModel: TaskListViewModel = viewModel()
@@ -43,6 +45,12 @@ fun TaskList(
             TopAppBar(
                 title = { Text("To-Do List") },
                 actions = {
+                    IconButton(onClick = onStatsClick) {
+                        Icon(
+                            imageVector = Icons.Default.BarChart,
+                            contentDescription = "Statistics"
+                        )
+                    }
                     IconButton(onClick = onSettingsClick) {
                         Icon(
                             imageVector = Icons.Default.Settings,
@@ -51,7 +59,7 @@ fun TaskList(
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = Color(0xFFFFC067),
+                    containerColor = Color(0xFF1F6E3F),
                 )
             )
         },
@@ -65,7 +73,7 @@ fun TaskList(
         Column(
             modifier = modifier
                 .fillMaxSize()
-                .background(color = Color(0xFFFFC067))
+                .background(color = Color(0xFFF5F5F5))
                 .padding(innerPadding)
         ) {
             if (viewModel.tasks.isEmpty()) {
@@ -75,7 +83,8 @@ fun TaskList(
                 ) {
                     Text(
                         text = "No tasks yet!",
-                        style = MaterialTheme.typography.titleMedium
+                        style = MaterialTheme.typography.titleMedium,
+                        color = Color.Black
                     )
                 }
             } else {
