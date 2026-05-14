@@ -12,19 +12,22 @@ import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.launch
 import java.io.File
 
-class TaskListViewModel(application: Application) : AndroidViewModel(application) {
+class TaskListViewModel(
+    application: Application,
+    private val repository: TaskRepository = TaskRepository(TaskDatabase.getDatabase(application).taskDao()),
+    private val notifier: NotificationService = NotificationScheduler(application),
+    private val geofenceService: GeofenceService = GeofenceManager(application)
+) : AndroidViewModel(application) {
 
     var tasks by mutableStateOf<List<TaskWithAttachments>>(emptyList())
         private set
-
-    private val taskDao = TaskDatabase.getDatabase(application).taskDao()
 
     private val settingsManager = SettingsManager.getInstance(application)
 
     init {
         viewModelScope.launch {
             combine(
-                taskDao.getTasksWithAttachments(),
+                repository.getTasksWithAttachmentsFlow(),
                 settingsManager.settingsFlow
             ) { tasks, settings ->
                 tasks.filter { task ->
@@ -44,12 +47,11 @@ class TaskListViewModel(application: Application) : AndroidViewModel(application
         viewModelScope.launch {
             val updatedTask = task.copy()
             updatedTask.completed = !updatedTask.completed
-            taskDao.update(updatedTask)
+            repository.updateTask(updatedTask)
         }
     }
 
     fun deleteTask(task: TaskWithAttachments) {
-        val notifier = NotificationScheduler(application)
         viewModelScope.launch(Dispatchers.IO) {
             task.attachments.forEach { attachment ->
                 try {
@@ -62,8 +64,9 @@ class TaskListViewModel(application: Application) : AndroidViewModel(application
                 }
             }
 
-            taskDao.delete(task.task)
+            repository.deleteTask(task.task)
             notifier.cancelNotification(task.task.uid)
+            geofenceService.removeGeofence(task.task.uid)
         }
     }
 

@@ -27,7 +27,14 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
+import androidx.lifecycle.ViewModel
+import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewmodel.compose.viewModel
+import androidx.compose.ui.platform.LocalContext
+import android.app.Application
+import com.example.todolist.ui.theme.PrimaryGreen
+import com.example.todolist.ui.theme.LightBackground
+import com.example.todolist.ui.theme.TextDark
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -36,9 +43,18 @@ fun TaskList(
     onSettingsClick: () -> Unit,
     onStatsClick: () -> Unit,
     onTaskClick: (Int) -> Unit,
-    modifier: Modifier = Modifier,
-    viewModel: TaskListViewModel = viewModel()
+    modifier: Modifier = Modifier
 ) {
+    val context = LocalContext.current
+    val viewModel: TaskListViewModel = viewModel(
+        factory = object : ViewModelProvider.Factory {
+            override fun <T : ViewModel> create(modelClass: Class<T>): T {
+                return TaskListViewModel(
+                    application = context.applicationContext as Application
+                ) as T
+            }
+        }
+    )
 
     Scaffold(
         topBar = {
@@ -59,7 +75,7 @@ fun TaskList(
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = Color(0xFF1F6E3F),
+                    containerColor = PrimaryGreen,
                 )
             )
         },
@@ -73,7 +89,7 @@ fun TaskList(
         Column(
             modifier = modifier
                 .fillMaxSize()
-                .background(color = Color(0xFFF5F5F5))
+                .background(color = LightBackground)
                 .padding(innerPadding)
         ) {
             if (viewModel.tasks.isEmpty()) {
@@ -84,7 +100,7 @@ fun TaskList(
                     Text(
                         text = "No tasks yet!",
                         style = MaterialTheme.typography.titleMedium,
-                        color = Color.Black
+                        color = TextDark
                     )
                 }
             } else {

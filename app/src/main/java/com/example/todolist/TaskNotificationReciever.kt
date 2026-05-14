@@ -6,13 +6,18 @@ import android.app.PendingIntent
 import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
+import android.util.Log
 import androidx.core.app.NotificationCompat
 import androidx.core.net.toUri
 
 class TaskNotificationReceiver : BroadcastReceiver() {
     override fun onReceive(context: Context, intent: Intent) {
+        Log.d("TaskNotificationReceiver", "Notification broadcast received")
+
         val title = intent.getStringExtra("task_title")
         val taskId = intent.getIntExtra("task_id", 0)
+
+        Log.d("TaskNotificationReceiver", "Task Title: $title, Task ID: $taskId")
 
         val notificationManager =
             context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
@@ -22,7 +27,6 @@ class TaskNotificationReceiver : BroadcastReceiver() {
             NotificationChannel(channelId, "Task Reminders", NotificationManager.IMPORTANCE_HIGH)
         notificationManager.createNotificationChannel(channel)
 
-
         val URI = "https://com.example.todolist?taskId=$taskId".toUri()
         val activityIntent = Intent(
             Intent.ACTION_VIEW,
@@ -31,7 +35,7 @@ class TaskNotificationReceiver : BroadcastReceiver() {
             MainActivity::class.java
         )
 
-        android.util.Log.d("NAV_DEBUG", "Receiver created URI: $URI")
+        Log.d("TaskNotificationReceiver", "Created URI: $URI")
 
         val pendingIntent = PendingIntent.getActivity(
             context,
@@ -41,14 +45,15 @@ class TaskNotificationReceiver : BroadcastReceiver() {
         )
 
         val notification = NotificationCompat.Builder(context, channelId)
-            .setSmallIcon(R.drawable.ic_launcher_foreground)
-            .setContentTitle("Reminder")
+            .setSmallIcon(android.R.drawable.ic_dialog_info)
+            .setContentTitle("Task Reminder")
             .setContentText(title)
             .setContentIntent(pendingIntent)
             .setPriority(NotificationCompat.PRIORITY_HIGH)
             .setAutoCancel(true)
             .build()
 
+        Log.d("TaskNotificationReceiver", "Showing notification with ID: $taskId")
         notificationManager.notify(taskId, notification)
     }
 }

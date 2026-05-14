@@ -43,6 +43,10 @@ import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.todolist.TaskItem
 import com.example.todolist.TaskWithAttachments
+import com.example.todolist.ui.theme.PrimaryGreen
+import com.example.todolist.ui.theme.LightBackground
+import com.example.todolist.ui.theme.TextDark
+import com.example.todolist.ui.theme.TextDarkGray
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun StatsScreen(
@@ -68,7 +72,7 @@ fun StatsScreen(
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = Color(0xFF1F6E3F),
+                    containerColor = PrimaryGreen,
                 )
             )
         }
@@ -76,7 +80,7 @@ fun StatsScreen(
         Column(
             modifier = modifier
                 .fillMaxSize()
-                .background(color = Color(0xFFF5F5F5))
+                .background(color = LightBackground)
                 .padding(innerPadding)
         ) {
             TabRow(
@@ -120,7 +124,7 @@ private fun OverviewTab(viewModel: StatsViewModel) {
     LazyColumn(
         modifier = Modifier
             .fillMaxSize()
-            .background(color = Color(0xFFF5F5F5)),
+            .background(color = LightBackground),
         contentPadding = PaddingValues(8.dp),
         verticalArrangement = Arrangement.spacedBy(12.dp)
     ) {
@@ -153,7 +157,7 @@ private fun OverallStatsCard(stats: OverallStats?) {
                 "Overall Statistics",
                 fontSize = 20.sp,
                 fontWeight = FontWeight.Bold,
-                color = Color.Black
+                color = TextDark
             )
             if (stats != null) {
                 Row(
@@ -170,7 +174,7 @@ private fun OverallStatsCard(stats: OverallStats?) {
                         horizontalArrangement = Arrangement.SpaceBetween,
                         verticalAlignment = Alignment.CenterVertically
                     ) {
-                        Text("Completion Rate: ${String.format("%.1f", stats.completionPercentage)}%", color = Color.Black)
+                        Text("Completion Rate: ${String.format("%.1f", stats.completionPercentage)}%", color = TextDark)
                     }
                     LinearProgressIndicator(
                         progress = { stats.completionPercentage / 100f },
@@ -204,7 +208,7 @@ private fun CategoryStatsCard(stats: CategoryStats) {
                 stats.categoryName,
                 fontSize = 16.sp,
                 fontWeight = FontWeight.SemiBold,
-                color = Color.Black
+                color = TextDark
             )
             Row(
                 modifier = Modifier.fillMaxWidth(),
@@ -222,7 +226,7 @@ private fun CategoryStatsCard(stats: CategoryStats) {
                     Text(
                         "Progress: ${String.format("%.1f", stats.completionPercentage)}%",
                         fontSize = 12.sp,
-                        color = Color.Black
+                        color = TextDark
                     )
                 }
                 LinearProgressIndicator(
@@ -240,13 +244,14 @@ private fun StatItem(label: String, value: String) {
     Column(
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
-        Text(value, fontSize = 16.sp, fontWeight = FontWeight.Bold, color = Color.Black)
-        Text(label, fontSize = 12.sp, color = Color.DarkGray)
+        Text(value, fontSize = 16.sp, fontWeight = FontWeight.Bold, color = TextDark)
+        Text(label, fontSize = 12.sp, color = TextDarkGray)
     }
 }
 @Composable
 private fun CompletedTasksTab(viewModel: StatsViewModel) {
     TasksListView(
+        viewModel = viewModel,
         tasks = viewModel.completedTasks,
         emptyMessage = "No completed tasks yet!"
     )
@@ -254,6 +259,7 @@ private fun CompletedTasksTab(viewModel: StatsViewModel) {
 @Composable
 private fun PendingTasksTab(viewModel: StatsViewModel) {
     TasksListView(
+        viewModel = viewModel,
         tasks = viewModel.pendingTasks,
         emptyMessage = "No pending tasks!"
     )
@@ -261,12 +267,14 @@ private fun PendingTasksTab(viewModel: StatsViewModel) {
 @Composable
 private fun AllTasksTab(viewModel: StatsViewModel) {
     TasksListView(
+        viewModel = viewModel,
         tasks = viewModel.allTasks,
         emptyMessage = "No tasks yet!"
     )
 }
 @Composable
 private fun TasksListView(
+    viewModel: StatsViewModel,
     tasks: List<TaskWithAttachments>,
     emptyMessage: String
 ) {
@@ -274,7 +282,7 @@ private fun TasksListView(
         Box(
             modifier = Modifier
                 .fillMaxSize()
-                .background(color = Color(0xFFF5F5F5)),
+                .background(color = LightBackground),
             contentAlignment = Alignment.Center
         ) {
             Text(emptyMessage, style = MaterialTheme.typography.titleMedium)
@@ -283,7 +291,7 @@ private fun TasksListView(
         LazyColumn(
             modifier = Modifier
                 .fillMaxSize()
-                .background(color = Color(0xFFF5F5F5)),
+                .background(color = LightBackground),
             contentPadding = PaddingValues(8.dp),
             verticalArrangement = Arrangement.spacedBy(8.dp)
         ) {
@@ -294,8 +302,8 @@ private fun TasksListView(
                 TaskItem(
                     task = item.task,
                     hasAttachments = item.attachments.isNotEmpty(),
-                    onToggleCompleted = { },
-                    onDelete = { },
+                    onToggleCompleted = { viewModel.toggleTaskCompletion(item.task) },
+                    onDelete = { viewModel.deleteTask(item) },
                     modifier = Modifier
                 )
             }

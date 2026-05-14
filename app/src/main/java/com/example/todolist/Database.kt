@@ -28,7 +28,12 @@ data class Task(
     @ColumnInfo val dueTime: String,
     @ColumnInfo var completed: Boolean,
     @ColumnInfo val showNotification: Boolean,
-    @ColumnInfo val category: Int
+    @ColumnInfo val category: Int,
+    // Location based notification fields
+    @ColumnInfo val locationNotification: Boolean = false,
+    @ColumnInfo val latitude: Double? = null,
+    @ColumnInfo val longitude: Double? = null,
+    @ColumnInfo val radiusMeters: Int? = null
 )
 
 @Dao
@@ -64,7 +69,7 @@ interface TaskDao {
     suspend fun getTaskWithAttachmentsById(id: Int): TaskWithAttachments?
 
     @Transaction
-    suspend fun saveTaskWithAttachments(task: Task, attachmentsToSave: List<Attachment>) {
+    suspend fun saveTaskWithAttachments(task: Task, attachmentsToSave: List<Attachment>): Int {
         val taskId = save(task).toInt()
 
         val existingAttachments = getTaskWithAttachmentsById(taskId)?.attachments ?: emptyList()
@@ -74,10 +79,12 @@ interface TaskDao {
         attachmentsToSave.forEach { attachment ->
             insertAttachment(attachment.copy(taskId = taskId))
         }
+
+        return taskId
     }
 }
 
-@Database(entities = [Task::class, Attachment::class], version = 2, exportSchema = false)
+@Database(entities = [Task::class, Attachment::class], version = 3, exportSchema = false)
 abstract class TaskDatabase : RoomDatabase() {
     abstract fun taskDao(): TaskDao
 

@@ -27,6 +27,9 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
+import com.example.todolist.ui.theme.PrimaryGreen
+import com.example.todolist.ui.theme.LightBackground
+import com.example.todolist.ui.theme.TextDark
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -38,10 +41,10 @@ fun SettingsScreen(viewModel: SettingsViewModel = viewModel()) {
         topBar = {
             TopAppBar(
                 title = { Text("Settings") },
-                colors = TopAppBarDefaults.topAppBarColors(containerColor = Color(0xFF1F6E3F))
+                colors = TopAppBarDefaults.topAppBarColors(containerColor = PrimaryGreen)
             )
         },
-        containerColor = Color(0xFFF5F5F5)
+        containerColor = LightBackground
     ) { innerPadding ->
         if (viewModel.currentSettings == null) {
             Box(
@@ -102,7 +105,7 @@ fun SettingsScreen(viewModel: SettingsViewModel = viewModel()) {
                         Text(
                             text = "Notification time: ${viewModel.currentSettings!!.notificationTime} minutes before",
                             style = MaterialTheme.typography.bodyLarge,
-                            color = Color.Black
+                            color = TextDark
                         )
                         Spacer(modifier = Modifier.height(8.dp))
                         Slider(
@@ -123,6 +126,6 @@ fun SettingsSectionTitle(title: String) {
     Text(
         text = title,
         style = MaterialTheme.typography.labelLarge,
-        color = Color.Black
+        color = TextDark
     )
 }

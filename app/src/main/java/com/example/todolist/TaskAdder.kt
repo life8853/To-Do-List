@@ -17,6 +17,7 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.AttachFile
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material3.Button
@@ -26,6 +27,7 @@ import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ExposedDropdownMenuAnchorType
 import androidx.compose.material3.ExposedDropdownMenuBox
 import androidx.compose.material3.ExposedDropdownMenuDefaults
+import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.OutlinedButton
@@ -33,6 +35,8 @@ import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
+import androidx.compose.material3.TopAppBar
+import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -49,6 +53,8 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.todolist.ui.theme.ToDoListTheme
+import com.example.todolist.ui.theme.PrimaryGreen
+import com.example.todolist.ui.theme.LightBackground
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -79,11 +85,25 @@ fun TaskAdder(modifier: Modifier = Modifier, taskID: Int? = null, onBack: () -> 
         }
     }
 
-    Scaffold { innerPadding ->
+    Scaffold(
+        topBar = {
+            TopAppBar(
+                title = { Text(if (viewModel.isTaskEdited) "Edit Task" else "Add Task") },
+                navigationIcon = {
+                    IconButton(onClick = onBack) {
+                        Icon(Icons.Default.ArrowBack, contentDescription = "Back")
+                    }
+                },
+                colors = TopAppBarDefaults.topAppBarColors(
+                    containerColor = PrimaryGreen
+                )
+            )
+        }
+    ) { innerPadding ->
         Column(
             modifier = modifier
                 .fillMaxSize()
-                .background(color = Color(0xFFF5F5F5))
+                .background(color = LightBackground)
                 .padding(innerPadding)
                 .padding(8.dp, 8.dp)
         ) {
@@ -133,7 +153,7 @@ fun TaskAdder(modifier: Modifier = Modifier, taskID: Int? = null, onBack: () -> 
                                 .fillMaxWidth()
                         )
 
-                        ExposedDropdownMenu(
+                        DropdownMenu(
                             expanded = dropdownExpanded,
                             onDismissRequest = { dropdownExpanded = false }
                         ) {
@@ -160,6 +180,30 @@ fun TaskAdder(modifier: Modifier = Modifier, taskID: Int? = null, onBack: () -> 
                             onCheckedChange = {
                                 viewModel.notifyUser = it
                             }
+                        )
+                    }
+
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Text("Notify when at location")
+                        Spacer(Modifier.width(8.dp))
+                        Switch(
+                            checked = viewModel.locationNotification,
+                            onCheckedChange = { viewModel.locationNotification = it }
+                        )
+                    }
+
+                    if (viewModel.locationNotification) {
+                        LocationPickerSection(
+                            latitude = viewModel.latitudeStr,
+                            longitude = viewModel.longitudeStr,
+                            radius = viewModel.radiusStr,
+                            onLatitudeChange = { viewModel.latitudeStr = it },
+                            onLongitudeChange = { viewModel.longitudeStr = it },
+                            onRadiusChange = { viewModel.radiusStr = it },
+                            isLocationNotificationEnabled = true
                         )
                     }
 

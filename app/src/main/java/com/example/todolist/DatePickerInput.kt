@@ -1,5 +1,6 @@
 package com.example.todolist
 
+import android.annotation.SuppressLint
 import android.content.res.Configuration
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.material.icons.Icons
@@ -35,6 +36,7 @@ import java.time.LocalDateTime
 import java.time.LocalTime
 import java.time.ZoneOffset
 
+@SuppressLint("NewApi")
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun DatePickerInput(selectedDateTime: LocalDateTime?, onDateTimeSelected: (LocalDateTime) -> Unit) {
@@ -117,6 +119,7 @@ fun DatePickerInput(selectedDateTime: LocalDateTime?, onDateTimeSelected: (Local
     }
 }
 
+@SuppressLint("NewApi")
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun TimePickerDialog(

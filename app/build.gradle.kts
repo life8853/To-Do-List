@@ -74,6 +74,13 @@ dependencies {
     implementation(libs.androidx.compose.material.icons.extended)
     implementation(libs.androidx.lifecycle.viewmodel.compose)
 
+    // Location / Geofencing
+    implementation("com.google.android.gms:play-services-location:21.0.1")
+    
+    // Google Maps
+    implementation("com.google.maps.android:maps-compose:4.3.1")
+    implementation("com.google.android.gms:play-services-maps:18.2.0")
+
     implementation(libs.androidx.room.ktx)
     ksp(libs.room.compiler)
 
