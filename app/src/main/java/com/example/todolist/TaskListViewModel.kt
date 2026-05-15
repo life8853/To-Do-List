@@ -5,7 +5,6 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.lifecycle.AndroidViewModel
-import androidx.lifecycle.application
 import androidx.lifecycle.viewModelScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.combine
@@ -14,7 +13,9 @@ import java.io.File
 
 class TaskListViewModel(
     application: Application,
-    private val repository: TaskRepository = TaskRepository(TaskDatabase.getDatabase(application).taskDao()),
+    private val repository: ITaskRepository = TaskRepository(
+        TaskDatabase.getDatabase(application).taskDao()
+    ),
     private val notifier: NotificationService = NotificationScheduler(application),
     private val geofenceService: GeofenceService = GeofenceManager(application)
 ) : AndroidViewModel(application) {

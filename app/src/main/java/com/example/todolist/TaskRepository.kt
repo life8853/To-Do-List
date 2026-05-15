@@ -1,21 +1,20 @@
 package com.example.todolist
 
-import kotlinx.coroutines.flow.Flow
+class TaskRepository(private val taskDao: TaskDao) : ITaskRepository {
 
-class TaskRepository(private val taskDao: TaskDao) {
+    override fun getTasksWithAttachmentsFlow() = taskDao.getTasksWithAttachments()
 
-    fun getTasksWithAttachmentsFlow(): Flow<List<TaskWithAttachments>> = taskDao.getTasksWithAttachments()
+    override suspend fun getTaskWithAttachmentsById(id: Int) =
+        taskDao.getTaskWithAttachmentsById(id)
 
-    suspend fun getTaskWithAttachmentsById(id: Int): TaskWithAttachments? = taskDao.getTaskWithAttachmentsById(id)
+    override suspend fun getTaskById(id: Int) = taskDao.getTaskById(id)
 
-    suspend fun getTaskById(id: Int): Task? = taskDao.getTaskById(id)
-
-    suspend fun saveTaskWithAttachments(task: Task, attachments: List<Attachment>): Int {
+    override suspend fun saveTaskWithAttachments(task: Task, attachments: List<Attachment>): Int {
         return taskDao.saveTaskWithAttachments(task, attachments)
     }
 
-    suspend fun deleteTask(task: Task) = taskDao.delete(task)
+    override suspend fun deleteTask(task: Task) = taskDao.delete(task)
 
-    suspend fun updateTask(task: Task) = taskDao.update(task)
+    override suspend fun updateTask(task: Task) = taskDao.update(task)
 }
 
