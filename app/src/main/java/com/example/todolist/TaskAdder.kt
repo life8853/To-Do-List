@@ -2,8 +2,13 @@ package com.example.todolist
 
 import android.app.Application
 import android.net.Uri
+import android.Manifest
+import android.os.Build
+import android.content.pm.PackageManager
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.runtime.LaunchedEffect
+import androidx.core.content.ContextCompat
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -30,6 +35,7 @@ import androidx.compose.material3.ExposedDropdownMenuDefaults
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
@@ -55,6 +61,7 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.todolist.ui.theme.ToDoListTheme
 import com.example.todolist.ui.theme.PrimaryGreen
 import com.example.todolist.ui.theme.LightBackground
+import kotlin.math.abs
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -82,6 +89,32 @@ fun TaskAdder(modifier: Modifier = Modifier, taskID: Int? = null, onBack: () -> 
     ) { uri: Uri? ->
         uri?.let {
             viewModel.addAttachmentDraft(it)
+        }
+    }
+
+    // Location permission launcher
+    val locationPermissionLauncher = rememberLauncherForActivityResult(
+        ActivityResultContracts.RequestPermission()
+    ) { isGranted ->
+        if (isGranted) {
+            android.util.Log.d("LocationPermission", "Location permission granted")
+        } else {
+            android.util.Log.d("LocationPermission", "Location permission denied")
+        }
+    }
+
+    // Request location permission when user enables location notification
+    LaunchedEffect(viewModel.locationNotification) {
+        if (viewModel.locationNotification) {
+            // Check if we have fine location permission
+            if (ContextCompat.checkSelfPermission(
+                    context,
+                    Manifest.permission.ACCESS_FINE_LOCATION
+                ) != PackageManager.PERMISSION_GRANTED
+            ) {
+                android.util.Log.d("LocationPermission", "Requesting ACCESS_FINE_LOCATION permission")
+                locationPermissionLauncher.launch(Manifest.permission.ACCESS_FINE_LOCATION)
+            }
         }
     }
 
@@ -181,6 +214,65 @@ fun TaskAdder(modifier: Modifier = Modifier, taskID: Int? = null, onBack: () -> 
                                 viewModel.notifyUser = it
                             }
                         )
+                    }
+
+                    if (viewModel.notifyUser) {
+                        val notificationOptions = remember { listOf(2, 4, 8, 16, 32, 64) }
+                        var notificationExpanded by remember { mutableStateOf(false) }
+
+                        LaunchedEffect(viewModel.notificationTime) {
+                            if (!notificationOptions.contains(viewModel.notificationTime)) {
+                                val nearest = notificationOptions.minBy { abs(it - viewModel.notificationTime) }
+                                viewModel.notificationTime = nearest
+                            }
+                        }
+
+                        Column(
+                            modifier = Modifier.fillMaxWidth(),
+                            verticalArrangement = Arrangement.spacedBy(8.dp)
+                        ) {
+                            Text(
+                                text = "Notification Time",
+                                style = MaterialTheme.typography.bodyMedium
+                            )
+                            ExposedDropdownMenuBox(
+                                expanded = notificationExpanded,
+                                onExpandedChange = { notificationExpanded = !notificationExpanded }
+                            ) {
+                                OutlinedTextField(
+                                    value = "${viewModel.notificationTime} minutes before",
+                                    onValueChange = {},
+                                    readOnly = true,
+                                    label = { Text("Notify before") },
+                                    trailingIcon = {
+                                        ExposedDropdownMenuDefaults.TrailingIcon(
+                                            expanded = notificationExpanded
+                                        )
+                                    },
+                                    modifier = Modifier
+                                        .menuAnchor(type = ExposedDropdownMenuAnchorType.PrimaryNotEditable)
+                                        .fillMaxWidth()
+                                )
+                                DropdownMenu(
+                                    expanded = notificationExpanded,
+                                    onDismissRequest = { notificationExpanded = false }
+                                ) {
+                                    notificationOptions.forEach { minutes ->
+                                        DropdownMenuItem(
+                                            text = { Text("$minutes minutes before") },
+                                            onClick = {
+                                                viewModel.notificationTime = minutes
+                                                notificationExpanded = false
+                                            }
+                                        )
+                                    }
+                                }
+                            }
+                            Text(
+                                text = "Options: 2, 4, 8, 16, 32, or 64 minutes",
+                                style = MaterialTheme.typography.labelSmall
+                            )
+                        }
                     }
 
                     Row(

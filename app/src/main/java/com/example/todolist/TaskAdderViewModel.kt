@@ -36,6 +36,9 @@ class TaskAdderViewModel(
     var description by mutableStateOf("")
 
     var notifyUser by mutableStateOf(false)
+    
+    // Notification time minutes before deadline (per-task setting)
+    var notificationTime by mutableStateOf(8)
 
     // Location-based notification fields
     var locationNotification by mutableStateOf(false)
@@ -107,7 +110,12 @@ class TaskAdderViewModel(
         val settings = SettingsManager.getInstance(getApplication())
 
         viewModelScope.launch {
-            val notifyBeforeMinutes = settings.settingsFlow.first().notificationTime
+            // Use per-task notification time if specified, otherwise fall back to global setting
+            val notifyBeforeMinutes = if (notifyUser) {
+                notificationTime
+            } else {
+                settings.settingsFlow.first().notificationTime
+            }
 
             val newAttachments = draftAttachments.mapNotNull { draft ->
                 performFileSync(draft, if (isTaskEdited) taskId else 0)
@@ -132,16 +140,22 @@ class TaskAdderViewModel(
             }
 
             // Schedule geofence if location notification enabled and coordinates available
-            if (newTask.locationNotification && newTask.latitude != null && newTask.longitude != null && newTask.radiusMeters != null) {
-                try {
-                    geofenceService.addGeofence(
-                        requestId = savedTaskId,
-                        latitude = newTask.latitude,
-                        longitude = newTask.longitude,
-                        radiusMeters = newTask.radiusMeters
-                    )
-                } catch (e: Exception) {
-                    e.printStackTrace()
+            if (newTask.locationNotification) {
+                if (newTask.latitude != null && newTask.longitude != null && newTask.radiusMeters != null) {
+                    try {
+                        android.util.Log.d("TaskAdderViewModel", "Adding geofence: lat=${newTask.latitude}, lng=${newTask.longitude}, radius=${newTask.radiusMeters}m for task ID=$savedTaskId")
+                        geofenceService.addGeofence(
+                            requestId = savedTaskId,
+                            latitude = newTask.latitude,
+                            longitude = newTask.longitude,
+                            radiusMeters = newTask.radiusMeters
+                        )
+                    } catch (e: Exception) {
+                        android.util.Log.e("TaskAdderViewModel", "Failed to add geofence: ${e.message}", e)
+                        e.printStackTrace()
+                    }
+                } else {
+                    android.util.Log.w("TaskAdderViewModel", "Location notification enabled but coordinates/radius missing: lat=${newTask.latitude}, lng=${newTask.longitude}, radius=${newTask.radiusMeters}")
                 }
             }
             withContext(Dispatchers.Main) {

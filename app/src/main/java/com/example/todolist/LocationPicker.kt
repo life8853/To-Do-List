@@ -34,6 +34,7 @@ fun LocationPickerSection(
     var mapsLinkInput by remember { mutableStateOf("") }
     var showError by remember { mutableStateOf(false) }
     var errorMessage by remember { mutableStateOf("") }
+    var isLoadingLocation by remember { mutableStateOf(false) }
     val scope = rememberCoroutineScope()
 
     // Permission launcher for location
@@ -42,20 +43,30 @@ fun LocationPickerSection(
     ) { isGranted ->
         if (isGranted) {
             // Permission granted, fetch current location
+            isLoadingLocation = true
             scope.launch {
-                val currentLocation = LocationUtils.getCurrentLocation(context)
-                if (currentLocation != null) {
-                    onLatitudeChange(currentLocation.first.toString())
-                    onLongitudeChange(currentLocation.second.toString())
-                    showError = false
-                } else {
-                    showError = true
-                    errorMessage = "Unable to get current location. Please check if location service is enabled."
+                try {
+                    val currentLocation = LocationUtils.getCurrentLocation(context)
+                    if (currentLocation != null) {
+                        onLatitudeChange(currentLocation.first.toString())
+                        onLongitudeChange(currentLocation.second.toString())
+                        showError = false
+                        errorMessage = ""
+                    } else {
+                        showError = true
+                        errorMessage = "Unable to get current location. Please ensure:\n" +
+                                "• Location services are ON\n" +
+                                "• GPS is enabled\n" +
+                                "• You have a clear view of the sky\n" +
+                                "• Try again in a few seconds"
+                    }
+                } finally {
+                    isLoadingLocation = false
                 }
             }
         } else {
             showError = true
-            errorMessage = "Location permission denied. Please enable it in app settings."
+            errorMessage = "Location permission denied. Please enable in Settings > App Details > Permissions"
         }
     }
 
@@ -118,16 +129,26 @@ fun LocationPickerSection(
                         Manifest.permission.ACCESS_FINE_LOCATION
                     ) == PackageManager.PERMISSION_GRANTED
                 ) {
-                    // Permission already granted
+                    // Permission already granted, fetch location
+                    isLoadingLocation = true
                     scope.launch {
-                        val currentLocation = LocationUtils.getCurrentLocation(context)
-                        if (currentLocation != null) {
-                            onLatitudeChange(currentLocation.first.toString())
-                            onLongitudeChange(currentLocation.second.toString())
-                            showError = false
-                        } else {
-                            showError = true
-                            errorMessage = "Unable to get current location. Please check if location service is enabled."
+                        try {
+                            val currentLocation = LocationUtils.getCurrentLocation(context)
+                            if (currentLocation != null) {
+                                onLatitudeChange(currentLocation.first.toString())
+                                onLongitudeChange(currentLocation.second.toString())
+                                showError = false
+                                errorMessage = ""
+                            } else {
+                                showError = true
+                                errorMessage = "Unable to get current location. Please ensure:\n" +
+                                        "• Location services are ON\n" +
+                                        "• GPS is enabled\n" +
+                                        "• You have a clear view of the sky\n" +
+                                        "• Try again in a few seconds"
+                            }
+                        } finally {
+                            isLoadingLocation = false
                         }
                     }
                 } else {
@@ -135,11 +156,18 @@ fun LocationPickerSection(
                     locationPermissionLauncher.launch(Manifest.permission.ACCESS_FINE_LOCATION)
                 }
             },
+            enabled = !isLoadingLocation,
             modifier = Modifier.fillMaxWidth()
         ) {
-            Icon(Icons.Filled.LocationOn, contentDescription = null)
-            Spacer(modifier = Modifier.width(8.dp))
-            Text("Use Current Location")
+            if (isLoadingLocation) {
+                CircularProgressIndicator(modifier = Modifier.size(20.dp))
+                Spacer(modifier = Modifier.width(8.dp))
+                Text("Getting Location...")
+            } else {
+                Icon(Icons.Filled.LocationOn, contentDescription = null)
+                Spacer(modifier = Modifier.width(8.dp))
+                Text("Use Current Location")
+            }
         }
 
         // Display current coordinates
@@ -197,30 +225,6 @@ fun LocationPickerSection(
             singleLine = true
         )
 
-        // Raw coordinate inputs (for fine-tuning)
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.spacedBy(8.dp)
-        ) {
-            OutlinedTextField(
-                value = latitude,
-                onValueChange = onLatitudeChange,
-                label = { Text("Latitude") },
-                modifier = Modifier
-                    .weight(1f)
-                    .height(56.dp),
-                singleLine = true
-            )
-            OutlinedTextField(
-                value = longitude,
-                onValueChange = onLongitudeChange,
-                label = { Text("Longitude") },
-                modifier = Modifier
-                    .weight(1f)
-                    .height(56.dp),
-                singleLine = true
-            )
-        }
 
         // Error Message
         if (showError) {

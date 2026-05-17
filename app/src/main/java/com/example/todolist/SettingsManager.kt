@@ -21,7 +21,7 @@ class SettingsManager private constructor(context: Context) {
     val settingsFlow: Flow<UserSettings> = dataStore.data.map { preferences ->
         UserSettings(
             hideCompleted = preferences[HIDE_COMPLETED] ?: true,
-            notificationTime = preferences[NOTIF_TIME] ?: 20,
+            notificationTime = preferences[NOTIF_TIME] ?: 8,
             visibleCategories = preferences[VISIBLE_CATEGORIES]?.map { Category.valueOf(it) }
                 ?.toSet()
                 ?: Category.entries.toSet()
