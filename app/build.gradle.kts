@@ -10,13 +10,11 @@ plugins {
 
 android {
     namespace = "com.example.todolist"
-    compileSdk {
-        version = release(36)
-    }
+    compileSdk = 36
 
     defaultConfig {
         applicationId = "com.example.todolist"
-        minSdk = 36
+        minSdk = 26
         targetSdk = 36
         versionCode = 1
         versionName = "1.0"
@@ -75,6 +73,13 @@ dependencies {
     implementation(libs.androidx.room.sqlite.wrapper)
     implementation(libs.androidx.compose.material.icons.extended)
     implementation(libs.androidx.lifecycle.viewmodel.compose)
+
+    // Location / Geofencing
+    implementation("com.google.android.gms:play-services-location:21.0.1")
+    
+    // Google Maps
+    implementation("com.google.maps.android:maps-compose:4.3.1")
+    implementation("com.google.android.gms:play-services-maps:18.2.0")
 
     implementation(libs.androidx.room.ktx)
     ksp(libs.room.compiler)

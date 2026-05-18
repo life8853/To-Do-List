@@ -2,8 +2,13 @@ package com.example.todolist
 
 import android.app.Application
 import android.net.Uri
+import android.Manifest
+import android.os.Build
+import android.content.pm.PackageManager
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.runtime.LaunchedEffect
+import androidx.core.content.ContextCompat
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -17,6 +22,7 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.AttachFile
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material3.Button
@@ -26,13 +32,17 @@ import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ExposedDropdownMenuAnchorType
 import androidx.compose.material3.ExposedDropdownMenuBox
 import androidx.compose.material3.ExposedDropdownMenuDefaults
+import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
+import androidx.compose.material3.TopAppBar
+import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -49,6 +59,9 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.todolist.ui.theme.ToDoListTheme
+import com.example.todolist.ui.theme.PrimaryGreen
+import com.example.todolist.ui.theme.LightBackground
+import kotlin.math.abs
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -79,11 +92,51 @@ fun TaskAdder(modifier: Modifier = Modifier, taskID: Int? = null, onBack: () -> 
         }
     }
 
-    Scaffold { innerPadding ->
+    // Location permission launcher
+    val locationPermissionLauncher = rememberLauncherForActivityResult(
+        ActivityResultContracts.RequestPermission()
+    ) { isGranted ->
+        if (isGranted) {
+            android.util.Log.d("LocationPermission", "Location permission granted")
+        } else {
+            android.util.Log.d("LocationPermission", "Location permission denied")
+        }
+    }
+
+    // Request location permission when user enables location notification
+    LaunchedEffect(viewModel.locationNotification) {
+        if (viewModel.locationNotification) {
+            // Check if we have fine location permission
+            if (ContextCompat.checkSelfPermission(
+                    context,
+                    Manifest.permission.ACCESS_FINE_LOCATION
+                ) != PackageManager.PERMISSION_GRANTED
+            ) {
+                android.util.Log.d("LocationPermission", "Requesting ACCESS_FINE_LOCATION permission")
+                locationPermissionLauncher.launch(Manifest.permission.ACCESS_FINE_LOCATION)
+            }
+        }
+    }
+
+    Scaffold(
+        topBar = {
+            TopAppBar(
+                title = { Text(if (viewModel.isTaskEdited) "Edit Task" else "Add Task") },
+                navigationIcon = {
+                    IconButton(onClick = onBack) {
+                        Icon(Icons.Default.ArrowBack, contentDescription = "Back")
+                    }
+                },
+                colors = TopAppBarDefaults.topAppBarColors(
+                    containerColor = PrimaryGreen
+                )
+            )
+        }
+    ) { innerPadding ->
         Column(
             modifier = modifier
                 .fillMaxSize()
-                .background(color = Color(0xFFFFC067))
+                .background(color = LightBackground)
                 .padding(innerPadding)
                 .padding(8.dp, 8.dp)
         ) {
@@ -133,7 +186,7 @@ fun TaskAdder(modifier: Modifier = Modifier, taskID: Int? = null, onBack: () -> 
                                 .fillMaxWidth()
                         )
 
-                        ExposedDropdownMenu(
+                        DropdownMenu(
                             expanded = dropdownExpanded,
                             onDismissRequest = { dropdownExpanded = false }
                         ) {
@@ -160,6 +213,89 @@ fun TaskAdder(modifier: Modifier = Modifier, taskID: Int? = null, onBack: () -> 
                             onCheckedChange = {
                                 viewModel.notifyUser = it
                             }
+                        )
+                    }
+
+                    if (viewModel.notifyUser) {
+                        val notificationOptions = remember { listOf(2, 4, 8, 16, 32, 64) }
+                        var notificationExpanded by remember { mutableStateOf(false) }
+
+                        LaunchedEffect(viewModel.notificationTime) {
+                            if (!notificationOptions.contains(viewModel.notificationTime)) {
+                                val nearest = notificationOptions.minBy { abs(it - viewModel.notificationTime) }
+                                viewModel.notificationTime = nearest
+                            }
+                        }
+
+                        Column(
+                            modifier = Modifier.fillMaxWidth(),
+                            verticalArrangement = Arrangement.spacedBy(8.dp)
+                        ) {
+                            Text(
+                                text = "Notification Time",
+                                style = MaterialTheme.typography.bodyMedium
+                            )
+                            ExposedDropdownMenuBox(
+                                expanded = notificationExpanded,
+                                onExpandedChange = { notificationExpanded = !notificationExpanded }
+                            ) {
+                                OutlinedTextField(
+                                    value = "${viewModel.notificationTime} minutes before",
+                                    onValueChange = {},
+                                    readOnly = true,
+                                    label = { Text("Notify before") },
+                                    trailingIcon = {
+                                        ExposedDropdownMenuDefaults.TrailingIcon(
+                                            expanded = notificationExpanded
+                                        )
+                                    },
+                                    modifier = Modifier
+                                        .menuAnchor(type = ExposedDropdownMenuAnchorType.PrimaryNotEditable)
+                                        .fillMaxWidth()
+                                )
+                                DropdownMenu(
+                                    expanded = notificationExpanded,
+                                    onDismissRequest = { notificationExpanded = false }
+                                ) {
+                                    notificationOptions.forEach { minutes ->
+                                        DropdownMenuItem(
+                                            text = { Text("$minutes minutes before") },
+                                            onClick = {
+                                                viewModel.notificationTime = minutes
+                                                notificationExpanded = false
+                                            }
+                                        )
+                                    }
+                                }
+                            }
+                            Text(
+                                text = "Options: 2, 4, 8, 16, 32, or 64 minutes",
+                                style = MaterialTheme.typography.labelSmall
+                            )
+                        }
+                    }
+
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Text("Notify when at location")
+                        Spacer(Modifier.width(8.dp))
+                        Switch(
+                            checked = viewModel.locationNotification,
+                            onCheckedChange = { viewModel.locationNotification = it }
+                        )
+                    }
+
+                    if (viewModel.locationNotification) {
+                        LocationPickerSection(
+                            latitude = viewModel.latitudeStr,
+                            longitude = viewModel.longitudeStr,
+                            radius = viewModel.radiusStr,
+                            onLatitudeChange = { viewModel.latitudeStr = it },
+                            onLongitudeChange = { viewModel.longitudeStr = it },
+                            onRadiusChange = { viewModel.radiusStr = it },
+                            isLocationNotificationEnabled = true
                         )
                     }
 
@@ -196,10 +332,23 @@ fun TaskAdder(modifier: Modifier = Modifier, taskID: Int? = null, onBack: () -> 
                         Text("Add Attachment")
                     }
 
-                    Button(onClick = {
-                        viewModel.createTask(onBack)
-                    }) {
-                        Text(if (viewModel.isTaskEdited) "Save Changes" else "Create Task")
+                    Column(
+                        modifier = Modifier.fillMaxWidth(),
+                        verticalArrangement = Arrangement.spacedBy(12.dp)
+                    ) {
+                        OutlinedButton(
+                            onClick = onBack,
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            Text("Cancel")
+                        }
+
+                        Button(
+                            onClick = { viewModel.createTask(onBack) },
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            Text(if (viewModel.isTaskEdited) "Save Changes" else "Create Task")
+                        }
                     }
 
                 }
