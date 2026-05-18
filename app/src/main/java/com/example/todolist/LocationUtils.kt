@@ -27,14 +27,50 @@ object LocationUtils {
      * - https://maps.google.com/?q=40.7128,-74.0060
      * - https://maps.google.com/maps?q=40.7128,-74.0060
      * - https://www.google.com/maps/place/40.7128,-74.0060
-     * - https://maps.app.goo.gl/sharedhash (returns null - requires API call)
+     * - https://www.google.com/maps/place/[name]/@40.7128,-74.0060,z...
+     * - https://www.google.com/maps/search/[query]/@40.7128,-74.0060,z...
+     * - https://maps.app.goo.gl/sharedhash (shortened link - needs expansion)
+     * - lat,lng as plain text (e.g., 40.7128,-74.0060)
      */
     fun parseGoogleMapsLink(url: String): Pair<Double, Double>? {
         return try {
             val cleanUrl = url.trim()
 
+            // Check if it's a shortened link
+            if (cleanUrl.contains("maps.app.goo.gl")) {
+                Log.w(TAG, "Shortened Google Maps link detected - cannot parse without expansion")
+                return null // Return null to trigger error message about shortened links
+            }
+
             // Try to extract coordinates from URL
             when {
+                // Format: https://www.google.com/maps/place/[name]/@40.7128,-74.0060,z...
+                // or: https://www.google.com/maps/search/[query]/@40.7128,-74.0060,z...
+                cleanUrl.contains("google.com/maps/") && cleanUrl.contains("/@") -> {
+                    val coordsPart = cleanUrl.substringAfter("/@").substringBefore(",z")
+                    if (coordsPart.isEmpty()) {
+                        // Try without z suffix
+                        val altCoordsPart = cleanUrl.substringAfter("/@")
+                        val parts = altCoordsPart.split(",")
+                        if (parts.size >= 2) {
+                            val lat = parts[0].toDoubleOrNull()
+                            val lng = parts[1].toDoubleOrNull()
+                            if (lat != null && lng != null && lat in -90.0..90.0 && lng in -180.0..180.0) {
+                                lat to lng
+                            } else null
+                        } else null
+                    } else {
+                        val parts = coordsPart.split(",")
+                        if (parts.size >= 2) {
+                            val lat = parts[0].toDoubleOrNull()
+                            val lng = parts[1].toDoubleOrNull()
+                            if (lat != null && lng != null && lat in -90.0..90.0 && lng in -180.0..180.0) {
+                                lat to lng
+                            } else null
+                        } else null
+                    }
+                }
+
                 // Format: https://maps.google.com/?q=40.7128,-74.0060
                 cleanUrl.contains("maps.google.com") && cleanUrl.contains("?q=") -> {
                     val query = cleanUrl.substringAfter("?q=").substringBefore("&")
@@ -83,6 +119,7 @@ object LocationUtils {
                 else -> null
             }
         } catch (e: Exception) {
+            Log.e(TAG, "Error parsing Google Maps link: ${e.message}")
             null
         }
     }

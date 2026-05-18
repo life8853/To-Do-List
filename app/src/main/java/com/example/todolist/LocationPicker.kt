@@ -105,8 +105,21 @@ fun LocationPickerSection(
                                 showError = false
                                 mapsLinkInput = ""
                             } else {
+                                // Check if it's a shortened link
                                 showError = true
-                                errorMessage = "Invalid Google Maps link or coordinates format"
+                                errorMessage = if (mapsLinkInput.contains("maps.app.goo.gl")) {
+                                    "Shortened link detected!\n\n" +
+                                    "To use this link:\n" +
+                                    "1. Long-press the link in your browser\n" +
+                                    "2. Select 'Open link' to expand it\n" +
+                                    "3. Copy the expanded URL from the address bar\n\n" +
+                                    "Or use: 'Use Current Location' button instead"
+                                } else {
+                                    "Invalid format. Supported formats:\n" +
+                                    "• Full Google Maps link with coordinates\n" +
+                                    "• Plain coordinates: 40.7128,-74.0060\n" +
+                                    "• Or use: 'Use Current Location' button"
+                                }
                             }
                         }
                     ) {
