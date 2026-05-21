@@ -19,6 +19,16 @@ import androidx.room.Transaction
 import androidx.room.Update
 import kotlinx.coroutines.flow.Flow
 
+enum class Priority(val id: Int, val displayName: String) {
+    LOW(0, "Low"),
+    MEDIUM(1, "Medium"),
+    HIGH(2, "High");
+
+    companion object {
+        fun fromId(id: Int): Priority = entries.find { it.id == id } ?: MEDIUM
+    }
+}
+
 @Entity
 data class Task(
     @PrimaryKey(autoGenerate = true) val uid: Int = 0,
@@ -28,7 +38,8 @@ data class Task(
     @ColumnInfo val dueTime: String,
     @ColumnInfo var completed: Boolean,
     @ColumnInfo val showNotification: Boolean,
-    @ColumnInfo val category: Int
+    @ColumnInfo val category: Int,
+    @ColumnInfo val priority: Int = Priority.MEDIUM.id
 )
 
 @Dao
@@ -47,7 +58,6 @@ interface TaskDao {
 
     @Query("SELECT * FROM Task WHERE uid = :id")
     suspend fun getTaskById(id: Int): Task?
-
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertAttachment(attachment: Attachment)
@@ -77,7 +87,7 @@ interface TaskDao {
     }
 }
 
-@Database(entities = [Task::class, Attachment::class], version = 2, exportSchema = false)
+@Database(entities = [Task::class, Attachment::class], version = 3, exportSchema = false)
 abstract class TaskDatabase : RoomDatabase() {
     abstract fun taskDao(): TaskDao
 

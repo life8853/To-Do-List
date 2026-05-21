@@ -8,6 +8,7 @@ import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.application
 import androidx.lifecycle.viewModelScope
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.launch
 import java.io.File
@@ -17,33 +18,50 @@ class TaskListViewModel(application: Application) : AndroidViewModel(application
     var tasks by mutableStateOf<List<TaskWithAttachments>>(emptyList())
         private set
 
+    var searchQuery by mutableStateOf("")
     private val taskDao = TaskDatabase.getDatabase(application).taskDao()
-
     private val settingsManager = SettingsManager.getInstance(application)
 
+    private val _searchQuery = MutableStateFlow("")
     init {
         viewModelScope.launch {
             combine(
                 taskDao.getTasksWithAttachments(),
-                settingsManager.settingsFlow
-            ) { tasks, settings ->
-                tasks.filter { task ->
-                    val isCategoryVisible =
-                        settings.visibleCategories.any { it.id == task.task.category }
-                    val isNotHiddenByStatus = !settings.hideCompleted || !task.task.completed
+                settingsManager.settingsFlow,
+                _searchQuery
+            ) { allTasks, settings, query ->
 
-                    isCategoryVisible && isNotHiddenByStatus
-                }
+                allTasks
+                    .filter { item ->
+                        val isCategoryVisible =
+                            settings.visibleCategories.any { it.id == item.task.category }
+                        val isNotHiddenByStatus =
+                            !settings.hideCompleted || !item.task.completed
+                        isCategoryVisible && isNotHiddenByStatus
+                    }
+                    .filter { item ->
+                        if (query.isBlank()) true
+                        else item.task.title.contains(query, ignoreCase = true) ||
+                                item.task.description.contains(query, ignoreCase = true)
+                    }
+                    .sortedWith(
+                        compareByDescending<TaskWithAttachments> { it.task.priority }
+                            .thenBy { it.task.dueTime }
+                    )
             }.collect { filteredList ->
                 tasks = filteredList
             }
         }
     }
 
+    fun onSearchQueryChange(query: String) {
+        searchQuery = query
+        _searchQuery.value = query
+    }
+
     fun toggleTaskCompletion(task: Task) {
         viewModelScope.launch {
-            val updatedTask = task.copy()
-            updatedTask.completed = !updatedTask.completed
+            val updatedTask = task.copy(completed = !task.completed)
             taskDao.update(updatedTask)
         }
     }
@@ -54,17 +72,13 @@ class TaskListViewModel(application: Application) : AndroidViewModel(application
             task.attachments.forEach { attachment ->
                 try {
                     val file = File(attachment.filePath)
-                    if (file.exists()) {
-                        file.delete()
-                    }
+                    if (file.exists()) file.delete()
                 } catch (e: Exception) {
                     e.printStackTrace()
                 }
             }
-
             taskDao.delete(task.task)
             notifier.cancelNotification(task.task.uid)
         }
     }
-
 }

@@ -69,14 +69,13 @@ fun TaskAdder(modifier: Modifier = Modifier, taskID: Int? = null, onBack: () -> 
 
     val scrollState = rememberScrollState()
 
-    var dropdownExpanded by remember { mutableStateOf(false) }
+    var categoryDropdownExpanded by remember { mutableStateOf(false) }
+    var priorityDropdownExpanded by remember { mutableStateOf(false) }
 
     val launcher = rememberLauncherForActivityResult(
         ActivityResultContracts.GetContent()
     ) { uri: Uri? ->
-        uri?.let {
-            viewModel.addAttachmentDraft(it)
-        }
+        uri?.let { viewModel.addAttachmentDraft(it) }
     }
 
     Scaffold { innerPadding ->
@@ -100,6 +99,7 @@ fun TaskAdder(modifier: Modifier = Modifier, taskID: Int? = null, onBack: () -> 
                     ) {
                         Text("Task Details", fontSize = 24.sp)
                     }
+
                     OutlinedTextField(
                         viewModel.title,
                         { viewModel.title = it },
@@ -119,30 +119,59 @@ fun TaskAdder(modifier: Modifier = Modifier, taskID: Int? = null, onBack: () -> 
                     })
 
                     ExposedDropdownMenuBox(
-                        expanded = dropdownExpanded,
-                        onExpandedChange = { dropdownExpanded = !dropdownExpanded }
+                        expanded = categoryDropdownExpanded,
+                        onExpandedChange = { categoryDropdownExpanded = !categoryDropdownExpanded }
                     ) {
                         OutlinedTextField(
                             value = viewModel.category.displayName,
                             onValueChange = {},
                             readOnly = true,
                             label = { Text("Category") },
-                            trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = dropdownExpanded) },
+                            trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = categoryDropdownExpanded) },
                             modifier = Modifier
                                 .menuAnchor(type = ExposedDropdownMenuAnchorType.PrimaryNotEditable)
                                 .fillMaxWidth()
                         )
-
                         ExposedDropdownMenu(
-                            expanded = dropdownExpanded,
-                            onDismissRequest = { dropdownExpanded = false }
+                            expanded = categoryDropdownExpanded,
+                            onDismissRequest = { categoryDropdownExpanded = false }
                         ) {
                             Category.entries.forEach { category ->
                                 DropdownMenuItem(
                                     text = { Text(category.displayName) },
                                     onClick = {
                                         viewModel.category = category
-                                        dropdownExpanded = false
+                                        categoryDropdownExpanded = false
+                                    }
+                                )
+                            }
+                        }
+                    }
+
+                    ExposedDropdownMenuBox(
+                        expanded = priorityDropdownExpanded,
+                        onExpandedChange = { priorityDropdownExpanded = !priorityDropdownExpanded }
+                    ) {
+                        OutlinedTextField(
+                            value = viewModel.priority.displayName,
+                            onValueChange = {},
+                            readOnly = true,
+                            label = { Text("Priority") },
+                            trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = priorityDropdownExpanded) },
+                            modifier = Modifier
+                                .menuAnchor(type = ExposedDropdownMenuAnchorType.PrimaryNotEditable)
+                                .fillMaxWidth()
+                        )
+                        ExposedDropdownMenu(
+                            expanded = priorityDropdownExpanded,
+                            onDismissRequest = { priorityDropdownExpanded = false }
+                        ) {
+                            Priority.entries.forEach { p ->
+                                DropdownMenuItem(
+                                    text = { Text(p.displayName) },
+                                    onClick = {
+                                        viewModel.priority = p
+                                        priorityDropdownExpanded = false
                                     }
                                 )
                             }
@@ -157,9 +186,7 @@ fun TaskAdder(modifier: Modifier = Modifier, taskID: Int? = null, onBack: () -> 
                         Spacer(Modifier.width(8.dp))
                         Switch(
                             checked = viewModel.notifyUser,
-                            onCheckedChange = {
-                                viewModel.notifyUser = it
-                            }
+                            onCheckedChange = { viewModel.notifyUser = it }
                         )
                     }
 
@@ -177,11 +204,7 @@ fun TaskAdder(modifier: Modifier = Modifier, taskID: Int? = null, onBack: () -> 
                         AttachmentItem(
                             fileName = draft.name,
                             onOpen = {
-                                viewModel.openDraftAttachment(
-                                    context,
-                                    draft.uri,
-                                    draft.mimeType
-                                )
+                                viewModel.openDraftAttachment(context, draft.uri, draft.mimeType)
                             },
                             onDelete = { viewModel.removeDraftAttachment(draft) }
                         )
@@ -196,12 +219,9 @@ fun TaskAdder(modifier: Modifier = Modifier, taskID: Int? = null, onBack: () -> 
                         Text("Add Attachment")
                     }
 
-                    Button(onClick = {
-                        viewModel.createTask(onBack)
-                    }) {
+                    Button(onClick = { viewModel.createTask(onBack) }) {
                         Text(if (viewModel.isTaskEdited) "Save Changes" else "Create Task")
                     }
-
                 }
             }
         }
@@ -230,11 +250,7 @@ fun AttachmentItem(
                 maxLines = 1
             )
             IconButton(onClick = onDelete) {
-                Icon(
-                    Icons.Default.Delete,
-                    contentDescription = "Delete",
-                    tint = Color.Red
-                )
+                Icon(Icons.Default.Delete, contentDescription = "Delete", tint = Color.Red)
             }
         }
     }
